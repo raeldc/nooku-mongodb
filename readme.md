@@ -1,7 +1,7 @@
 MongoDB Support for Nooku Framework
 ===================================
 
-**Warning: This code is a prototype, incubation stage. Use it at your own risk! **
+**Warning: This code is a prototype, incubation stage. Use it at your own risk!**
 
 Instructions
 ------------
