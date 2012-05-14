@@ -229,7 +229,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Builds a WHERE clause for the query
      */
-    protected function _buildQueryWhere(SDatabaseQueryDocument $query)
+    protected function _buildQueryWhere(ComMongoDatabaseQueryDocument $query)
     {
         //Get only the unique states
         $states = $this->_state->getData(true);
@@ -250,7 +250,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Builds a Limit clause for the query
      */
-    protected function _buildQueryLimit(SDatabaseQueryDocument $query)
+    protected function _buildQueryLimit(ComMongoDatabaseQueryDocument $query)
     {
         if (!is_null($this->_state->limit)) {
             $query->limit($this->_state->limit, $this->_state->offset);
@@ -260,7 +260,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Builds a Order clause for the query
      */
-    protected function _buildQueryOrder(SDatabaseQueryDocument $query)
+    protected function _buildQueryOrder(ComMongoDatabaseQueryDocument $query)
     {
         if (!is_null($this->_state->sort)) {
             $query->sort($this->_state->sort, $this->_state->direction);

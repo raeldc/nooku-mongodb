@@ -36,7 +36,7 @@ class ComMongoDatabaseAdapterDocument extends KObject
     {
     	$config->append(array(
     		'connection'		=> null,
-    		'database'			=> '',
+    		'database'			=> 'mcced',
     		'synced'			=> true,
     		'command_chain'		=> $this->getService('koowa:command.chain'),
     		'event_dispatcher'  => $this->getService('koowa:event.dispatcher'),
@@ -67,7 +67,7 @@ class ComMongoDatabaseAdapterDocument extends KObject
 		return $this->_connection;
 	}
 
-	public function find(SDatabaseQueryDocument $query, $mode = KDatabase::FETCH_ROWSET)
+	public function find(ComMongoDatabaseQueryDocument $query, $mode = KDatabase::FETCH_ROWSET)
 	{
 		$result = array();
 

@@ -53,7 +53,7 @@ abstract class ComMongoDatabaseDocumentAbstract extends KObject
     protected function _initialize(KConfig $config)
     {
         // TODO: Set the database to be a singleton, use com:application.database
-        $database = $this->getService('shyft:database.adapter.document');
+        $database = $this->getService('com://site/mongo.database.adapter.document');
         $package = $this->getIdentifier()->package;
         $name    = $this->getIdentifier()->name;
 
@@ -382,13 +382,13 @@ abstract class ComMongoDatabaseDocumentAbstract extends KObject
     {
         static $instance;
 
-        if ($query instanceof SDatabaseQueryDocument) {
+        if ($query instanceof ComMongoDatabaseQueryDocument) {
             return $query;
         }
 
         if (is_null($instance))
         {
-            $instance = new SDatabaseQueryDocument();
+            $instance = new ComMongoDatabaseQueryDocument();
         }
 
         if (is_array($query))
