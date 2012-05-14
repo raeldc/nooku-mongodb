@@ -1,6 +1,3 @@
 <?php
 
-class ComMongoDatabaseRowDefault extends ComMongoDatabaseRowDocument
-{
-	
-}
+class ComMongoDatabaseRowDefault extends ComMongoDatabaseRowDocument{}

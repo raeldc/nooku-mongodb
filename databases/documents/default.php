@@ -1,30 +1,32 @@
 <?php
 
-class ComMongoDatabaseDocumentDefault extends ComMongoDatabaseDocumentAbstract implements KObjectInstantiatable
+class ComMongoDatabaseDocumentDefault extends ComMongoDatabaseDocumentAbstract implements KServiceInstantiatable
 {
-	/**
-     * Associative array of table instances
-     * 
-     * @var array
-     */
-    private static $_instances = array();
-    
-	/**
+    protected function _initialize(KConfig $config)
+    {
+        if (!isset($config->identity_column)) {
+            $config->identity_column = '_id';
+        }
+
+        parent::_initialize($config);
+    }
+
+    /**
      * Force creation of a singleton
      *
-     * @return ComMongoDatabaseDocumentDefault
+     * @return SDatabaseDocumentDefault
      */
-    public static function getInstance($config = array(), KFactoryInterface $factory = null)
+    public static function getInstance(KConfigInterface $config, KServiceInterface $container)
     {
-       // Check if an instance with this identifier already exists or not
-        if (!$factory->exists($config->identifier))
+        // Check if an instance with this identifier already exists or not
+        if (!$container->has($config->service_identifier))
         {
             //Create the singleton
-            $classname = $config->identifier->classname;
+            $classname = $config->service_identifier->classname;
             $instance  = new $classname($config);
-            $factory->set($config->identifier, $instance);
+            $container->set($config->service_identifier, $instance);
         }
-        
-        return $factory->get($config->identifier);
+
+        return $container->get($config->service_identifier);
     }
 }

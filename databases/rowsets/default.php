@@ -1,6 +1,3 @@
 <?php
 
-class ComMongoDatabaseRowsetDefault extends ComMongoDatabaseRowsetDocument
-{
-	
-}
+class ComMongoDatabaseRowsetDefault extends ComMongoDatabaseRowsetDocument{}

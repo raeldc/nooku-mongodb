@@ -1,5 +1,4 @@
 <?php
-
 abstract class ComMongoModelDocument extends KModelAbstract
 {
     /**
@@ -8,7 +7,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
      * @var string|object
      */
     protected $_document = false;
-    
+
     /**
      * Constructor
      *
@@ -19,7 +18,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
         parent::__construct($config);
 
         $this->_document = $config->document;
-      
+
         // Set the static states
         $this->_state
             ->insert('limit'    , 'int', 10)
@@ -31,17 +30,6 @@ abstract class ComMongoModelDocument extends KModelAbstract
             ->insert('callback' , 'cmd')
             // TODO: Automatically populate the unique states from the row definition.
             ->insert('id', 'string', null, true);
-
-        //Try getting a document object
-        if($this->isConnected())
-        {
-        	/*
-            // Set the dynamic states based on the unique document keys
-            foreach($this->getDocument()->getUniqueColumns() as $key => $column) {
-                $this->_state->insert($key, $column->filter, null, true, $this->getDocument()->mapColumns($column->related, true));
-            }
-            */
-        }
     }
 
     /**
@@ -55,7 +43,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
     protected function _initialize(KConfig $config)
     {
         $config->append(array(
-            'document' => $this->_identifier->name,
+            'document' => $this->getIdentifier()->name,
         ));
 
         parent::_initialize($config);
@@ -73,7 +61,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
     public function set( $property, $value = null )
     {
         parent::set($property, $value);
-        
+
         // If limit has been changed, adjust offset accordingly
         if($limit = $this->_state->limit) {
              $this->_state->offset = $limit != 0 ? (floor($this->_state->offset / $limit) * $limit) : 0;
@@ -81,11 +69,11 @@ abstract class ComMongoModelDocument extends KModelAbstract
 
         return $this;
     }
-    
+
     /**
      * Method to get a document object
-     * 
-     * Function catches KDatabaseDocumentExceptions that are thrown for documents that 
+     *
+     * Function catches KDatabaseDocumentExceptions that are thrown for documents that
      * don't exist. If no document object can be created the function will return FALSE.
      *
      * @return KDatabaseDocumentAbstract
@@ -94,17 +82,15 @@ abstract class ComMongoModelDocument extends KModelAbstract
     {
         if($this->_document !== false)
         {
-            if(!($this->_document instanceof ComMongoDatabaseDocumentAbstract))
-		    {   		        
-		        //Make sure we have a document identifier
-		        if(!($this->_document instanceof KIdentifier)) {
-		            $this->setDocument($this->_document);
-			    }
+            if(!($this->_document instanceof SDatabaseDocumentAbstract))
+            {
+                //Make sure we have a document identifier
+                if(!($this->_document instanceof KIdentifier)) {
+                    $this->setDocument($this->_document);
+                }
 
-		        try {
-		            $this->_document = KFactory::get($this->_document, array(
-		            	'collection' => $this->_identifier->name
-			        ));
+                try {
+                    $this->_document = $this->getService($this->_document);
                 } catch (KDatabaseDocumentException $e) {
                     $this->_document = false;
                 }
@@ -117,44 +103,44 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Method to set a document object attached to the model
      *
-     * @param   mixed   An object that implements KObjectIdentifiable, an object that
+     * @param   mixed   An object that implements KObject, an object that
      *                  implements KIdentifierInterface or valid identifier string
      * @throws  KDatabaseRowsetException    If the identifier is not a document identifier
      * @return  KModelDocument
      */
     public function setDocument($document)
-	{
-		if(!($document instanceof ComMongoDatabaseDocumentAbstract))
-		{
-			if(is_string($document) && strpos($document, '.') === false ) 
-		    {
-		        $identifier         = clone $this->_identifier;
-		        $identifier->path   = array('database', 'document');
-		        $identifier->name   = KInflector::tableize($document);
-		    }
-		    else  $identifier = KIdentifier::identify($document);
+    {
+        if(!($document instanceof SDatabaseDocumentAbstract))
+        {
+            if(is_string($document) && strpos($document, '.') === false )
+            {
+                $identifier         = clone $this->getIdentifier();
+                $identifier->path   = array('database', 'document');
+                $identifier->name   = KInflector::tableize($document);
+            }
+            else  $identifier = $this->getIdentifier($document);
 
-			if($identifier->path[1] != 'document') {
-				throw new KDatabaseRowsetException('Identifier: '.$identifier.' is not a document identifier');
-			}
+            if($identifier->path[1] != 'document') {
+                throw new KDatabaseRowsetException('Identifier: '.$identifier.' is not a document identifier');
+            }
 
-			$document = $identifier;
-		}
+            $document = $identifier;
+        }
 
-		$this->_document = $document;
+        $this->_document = $document;
 
-		return $this;
-	}
-    
-	/**
-	 * Test the connected status of the row.
-	 *
-	 * @return	boolean	Returns TRUE if we have a reference to a live KDatabaseDocumentAbstract object.
-	 */
+        return $this;
+    }
+
+    /**
+     * Test the connected status of the row.
+     *
+     * @return  boolean Returns TRUE if we have a reference to a live KDatabaseDocumentAbstract object.
+     */
     public function isConnected()
-	{
-	    return (bool) $this->getDocument();
-	}
+    {
+        return (bool) $this->getDocument();
+    }
 
     /**
      * Method to get a item object which represents a document row
@@ -177,7 +163,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
                     $query = $this->getDocument()->getQuery();
                     $this->_buildQueryWhere($query);
                 }
-                
+
                 $this->_item = $this->getDocument()->find($query, KDatabase::FETCH_ROW);
             }
         }
@@ -198,7 +184,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
             if($this->isConnected())
             {
                 $query  = null;
-                
+
                 if(!$this->_state->isEmpty())
                 {
                     $query = $this->getDocument()->getQuery();
@@ -213,7 +199,7 @@ abstract class ComMongoModelDocument extends KModelAbstract
         }
         return $this->_list;
     }
-    
+
     /**
      * Get the total amount of items
      *
@@ -228,8 +214,8 @@ abstract class ComMongoModelDocument extends KModelAbstract
             {
                 //Excplicitly get a count query, build functions can then test if the
                 //query is a count query and decided how to build the query.
-                $query = $this->getDocument()->getQuery(); 
-                
+                $query = $this->getDocument()->getQuery();
+
                 $this->_buildQueryWhere($query);
 
                 $total = $this->getDocument()->count($query);
@@ -243,17 +229,28 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Builds a WHERE clause for the query
      */
-    protected function _buildQueryWhere(ComMongoDatabaseQueryDocument $query)
+    protected function _buildQueryWhere(SDatabaseQueryDocument $query)
     {
-        if (!is_null($this->_state->id)) {
-            $query->where('id', '=', $this->_state->id);
+        //Get only the unique states
+        $states = $this->_state->getData(true);
+
+        if(!empty($states))
+        {
+            $states = $this->getDocument()->mapColumns($states);
+            foreach($states as $key => $value)
+            {
+                if(is_array($value)) {
+                    $query->where($key, 'IN', $value);
+                }
+                else $query->where($key, '=', $value);
+            }
         }
     }
 
     /**
      * Builds a Limit clause for the query
      */
-    protected function _buildQueryLimit(ComMongoDatabaseQueryDocument $query)
+    protected function _buildQueryLimit(SDatabaseQueryDocument $query)
     {
         if (!is_null($this->_state->limit)) {
             $query->limit($this->_state->limit, $this->_state->offset);
@@ -263,12 +260,10 @@ abstract class ComMongoModelDocument extends KModelAbstract
     /**
      * Builds a Order clause for the query
      */
-    protected function _buildQueryOrder(ComMongoDatabaseQueryDocument $query)
+    protected function _buildQueryOrder(SDatabaseQueryDocument $query)
     {
         if (!is_null($this->_state->sort)) {
             $query->sort($this->_state->sort, $this->_state->direction);
         }
     }
-
-
 }

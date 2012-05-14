@@ -1,6 +1,6 @@
 <?php
 
-class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifiable 
+class ComMongoDatabaseAdapterDocument extends KObject
 {
 	protected $_connection;
 	protected $_database;
@@ -9,13 +9,15 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
 	public function __construct(KConfig $config)
 	{
 		parent::__construct($config);
-		
-		if (is_null($config->connection)) 
+
+		if (is_null($config->connection))
 		{
 			// TODO: Move this to a specific Mongo adapter
 			$connect = 'mongodb://';
 			$connect .= (!empty($config->options->username) && !empty($config->options->password)) ? $config->options->username.':'.$config->options->password.'@' : '';
 			$connect .= (!empty($config->options->host)) ? $config->options->host : '';
+			$connect .= (!empty($config->options->port)) ? ':'. $config->options->port : '';
+			$connect .= (!empty($config->database)) ? '/'. $config->database : '';
 
 			$this->setConnection(new Mongo($connect));
 
@@ -24,15 +26,10 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
 		else $this->setConnection($config->connection);
 
 		// Mixin a command chain
-        $this->mixin(new KMixinCommandchain($config->append(array('mixer' => $this))));
+        $this->mixin(new KMixinCommand($config->append(array('mixer' => $this))));
 
         // More sure that data has been inserted/updated
         $this->_synced = $config->synced;
-	}
-
-	public function getIdentifier()
-	{
-		return $this->_identifier;
 	}
 
 	protected function _initialize(KConfig $config)
@@ -41,15 +38,17 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
     		'connection'		=> null,
     		'database'			=> '',
     		'synced'			=> true,
+    		'command_chain'		=> $this->getService('koowa:command.chain'),
+    		'event_dispatcher'  => $this->getService('koowa:event.dispatcher'),
 			'options'	=> array(
-    			'host'		=> 'localhost', 
-    			'username'	=> null,
-    			'password'  => null,
+    			'host'		=> 'localhost',
+    			'username'	=> '',
+    			'password'  => '',
     			'port'		=> null,
     			'socket'	=> null
     		)
         ));
-         
+
         parent::_initialize($config);
     }
 
@@ -58,7 +57,7 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
 	    if(!($resource instanceof Mongo)) {
 	        throw new KDatabaseAdapterException('Not a Mongo connection');
 	    }
-	    
+
 	    $this->_connection = $resource;
 		return $this;
 	}
@@ -68,11 +67,11 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
 		return $this->_connection;
 	}
 
-	public function find($query, $mode = KDatabase::FETCH_ROWSET)
+	public function find(SDatabaseQueryDocument $query, $mode = KDatabase::FETCH_ROWSET)
 	{
 		$result = array();
 
-		if(!empty($query->from)) 
+		if(!empty($query->from))
 		{
 			$collection = $this->_database->selectCollection($query->from);
 
@@ -99,42 +98,50 @@ class ComMongoDatabaseAdapterDocument extends KObject implements KObjectIdentifi
 			}
 		}
 
+		$query->reset();
+
 		return $result;
 	}
 
 	public function insert($collection, $data = array())
 	{
-		$this->_database->selectCollection($collection)->insert((array)$data, array('fsync' => $this->_synced));
+		$this->_database->selectCollection($collection)->insert($data, array('fsync' => $this->_synced));
 
 		return $data;
 	}
 
 	public function update($collection, $query, $data = array())
 	{
-		$query = $query->build();
+		$q = $query->build();
 
 		$collection = $this->_database->selectCollection($collection);
 
 		unset($data['_id']);unset($data['id']);
 
-		$collection->update($query, (array)$data, array('fsync' => $this->_synced));
+		$collection->update($q, (array)$data, array('fsync' => $this->_synced));
 
 		// return affected rows
-		return $collection->find($query)->count();
+		$result = $collection->find($q)->count();
+
+		$query->reset();
+
+		return $result;
 	}
 
 	public function delete($collection, $query, $data = array())
 	{
-		$query = $query->build();
+		$condition = $query->build();
 
 		$collection = $this->_database->selectCollection($collection);
 
-		unset($data['_id']);unset($data['id']);
+		$affected = $collection->find($condition)->count();
 
-		$collection->remove($query, array('fsync' => $this->_synced));
+		$collection->remove($condition, array('fsync' => $this->_synced));
+
+		$query->reset();
 
 		// return affected rows
-		return $collection->find($query)->count();
+		return $affected;
 	}
 
 	public function count($query)

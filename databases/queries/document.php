@@ -16,7 +16,7 @@ class ComMongoDatabaseQueryDocument extends KObject
 
     public function where( $property, $constraint = null, $value = null, $condition = 'AND' )
     {
-        if(!empty($property)) 
+        if(!empty($property))
         {
             $where = array();
             $where['property'] = $property;
@@ -25,11 +25,11 @@ class ComMongoDatabaseQueryDocument extends KObject
             {
                 $constraint = strtoupper($constraint);
                 $condition  = strtoupper($condition);
-            
+
                 $where['constraint'] = $constraint;
                 $where['value']      = $value;
             }
-        
+
             $where['condition']  = count($this->where) ? $condition : '';
 
             //Make sure we don't store the same where clauses twice
@@ -46,7 +46,7 @@ class ComMongoDatabaseQueryDocument extends KObject
     {
         $this->limit  = (int) $limit;
         $this->offset = (int) $offset;
-        
+
         return $this;
     }
 
@@ -77,29 +77,51 @@ class ComMongoDatabaseQueryDocument extends KObject
         $this->query = array();
 
         // TODO: Try to account for OR not just AND
-        foreach ($this->where as $where) 
+        foreach ($this->where as $where)
         {
+            $value = $where['value'];
+
+            if ($where['property'] == 'id') {
+                $where['property'] = '_id';
+            }
+
+            if (is_array($value))
+            {
+                $items = array();
+                foreach ($value as $key => $item)
+                {
+                    if($where['property'] == '_id')
+                    {
+                        $items[] = new MongoId($item);
+                    }
+                    else $value = $item;
+                }
+                $value = $items;
+            }
+            elseif($where['property'] == '_id')
+            {
+                $value = new MongoId($value);
+            }
 
             switch($where['constraint']){
                 case '=':
-                    if ($where['property'] == 'id') {
-                        $this->query['_id'] = new MongoId($where['value']);
-                    }
-                    else $this->query[$where['property']] = $where['value'];
+                    $this->query[$where['property']] = $value;
                 break;
 
                 default:
                     $constraint = array(
                         'in' => '$in',
-                        '<' => '$lt',
+                        '<'  => '$lt',
                         '<=' => '$lte',
-                        '>' => '$gt',
+                        '>'  => '$gt',
                         '>=' => '$gte',
                         '<>' => '$ne',
                         '!=' => '$ne',
+                        '='  => '$eq',
                     );
 
-                    $value = (strtolower($where['constraint']) == 'in' && is_string($value)) ? array($value) : $where['value'];
+                    $where['constraint'] = strtolower($where['constraint']);
+                    $value = $where['constraint'] == 'in' && is_string($value) ? array($value) : $value;
 
                     $this->query[$where['property']] = array(strtolower($constraint[$where['constraint']]) => $value);
                 break;
@@ -107,5 +129,20 @@ class ComMongoDatabaseQueryDocument extends KObject
         }
 
         return empty($this->query) ? new stdclass : (object)$this->query;
+    }
+
+    public function reset()
+    {
+        $this->from;
+
+        $this->where = array();
+
+        $this->sort = array();
+
+        $this->limit = 0;
+
+        $this->offset = 0;
+
+        $this->query = null;
     }
 }
